@@ -1,8 +1,9 @@
 package persona
 
 import (
-	"code.google.com/p/gorilla/sessions"
 	"net/http"
+
+	"github.com/gorilla/sessions"
 )
 
 type Store struct {
