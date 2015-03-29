@@ -14,11 +14,14 @@ func New(store Store, audience string, users []string) PersonaHandlers {
 	}
 }
 
+type Protect func(http.Handler) http.Handler
+type Switch func(http.Handler, http.Handler) http.Handler
+
 type PersonaHandlers struct {
 	SignIn  http.Handler
 	SignOut http.Handler
-	Protect func(http.Handler) http.Handler
-	Switch  func(http.Handler, http.Handler) http.Handler
+	Protect Protect
+	Switch  Switch
 }
 
 func isSignedIn(toCheck string, users []string) bool {
