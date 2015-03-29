@@ -1,27 +1,24 @@
 package persona
 
 import (
-	"net/http"
 	"log"
+	"net/http"
 )
 
-func New(store emailStore, audience string, users []string) PersonaHandlers {
+func New(store Store, audience string, users []string) PersonaHandlers {
 	return PersonaHandlers{
-	  SignIn:  signInHandler{store, audience},
-    SignOut: signOutHandler{store},
-    Protect: protectFilter{store, users}.Apply,
-	  Switch:  switchBranch{store, users}.Apply,
+		SignIn:  signInHandler{store, audience},
+		SignOut: signOutHandler{store},
+		Protect: protectFilter{store, users}.Apply,
+		Switch:  switchBranch{store, users}.Apply,
 	}
 }
 
-type Filter func(http.Handler) http.Handler
-type Branch func(http.Handler, http.Handler) http.Handler
-
 type PersonaHandlers struct {
-	SignIn   http.Handler
-	SignOut  http.Handler
-	Protect  Filter
-	Switch   Branch
+	SignIn  http.Handler
+	SignOut http.Handler
+	Protect func(http.Handler) http.Handler
+	Switch  func(http.Handler, http.Handler) http.Handler
 }
 
 func isSignedIn(toCheck string, users []string) bool {
@@ -33,13 +30,8 @@ func isSignedIn(toCheck string, users []string) bool {
 	return false
 }
 
-type emailStore interface {
-	Set(email string, w http.ResponseWriter, r *http.Request)
-	Get(r *http.Request) string
-}
-
 type switchBranch struct {
-	store emailStore
+	store Store
 	users []string
 }
 
@@ -55,7 +47,7 @@ func (b switchBranch) Apply(good, bad http.Handler) http.Handler {
 }
 
 type protectFilter struct {
-	store emailStore
+	store Store
 	users []string
 }
 
@@ -68,13 +60,13 @@ func (f protectFilter) Apply(handler http.Handler) http.Handler {
 }
 
 type signInHandler struct {
-	store    emailStore
+	store    Store
 	audience string
 }
 
 func (s signInHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	assertion := r.PostFormValue("assertion")
-	email, err := Assert(s.audience, assertion)
+	email, err := assert(s.audience, assertion)
 
 	if err != nil {
 		log.Print("persona:", err)
@@ -87,7 +79,7 @@ func (s signInHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type signOutHandler struct {
-	store emailStore
+	store Store
 }
 
 func (s signOutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

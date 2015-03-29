@@ -6,15 +6,20 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-type Store struct {
+type Store interface {
+	Set(email string, w http.ResponseWriter, r *http.Request)
+	Get(r *http.Request) string
+}
+
+type emailStore struct {
 	store sessions.Store
 }
 
 func NewStore(secret string) Store {
-	return Store{sessions.NewCookieStore([]byte(secret))}
+	return &emailStore{sessions.NewCookieStore([]byte(secret))}
 }
 
-func (s Store) Get(r *http.Request) string {
+func (s emailStore) Get(r *http.Request) string {
 	session, _ := s.store.Get(r, "session-name")
 
 	if v, ok := session.Values["email"].(string); ok {
@@ -24,7 +29,7 @@ func (s Store) Get(r *http.Request) string {
 	return ""
 }
 
-func (s Store) Set(email string, w http.ResponseWriter, r *http.Request) {
+func (s emailStore) Set(email string, w http.ResponseWriter, r *http.Request) {
 	session, _ := s.store.Get(r, "session-name")
 	session.Values["email"] = email
 	session.Save(r, w)

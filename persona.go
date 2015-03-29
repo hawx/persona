@@ -8,12 +8,12 @@ import (
 	"net/url"
 )
 
-type PersonaResponse struct {
+type personaResponse struct {
 	Status string `json:"status"`
 	Email  string `json:"email"`
 }
 
-func Assert(audience, assertion string) (string, error) {
+func assert(audience, assertion string) (string, error) {
 	params := url.Values{}
 	params.Add("assertion", assertion)
 	params.Add("audience", audience)
@@ -27,7 +27,7 @@ func Assert(audience, assertion string) (string, error) {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	var f PersonaResponse
+	var f personaResponse
 	err = json.Unmarshal(body, &f)
 
 	if err != nil {
