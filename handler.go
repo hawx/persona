@@ -9,8 +9,8 @@ func New(store Store, audience string, users []string) PersonaHandlers {
 	return PersonaHandlers{
 		SignIn:  signInHandler{store, audience},
 		SignOut: signOutHandler{store},
-		Protect: protectFilter{store, users}.Apply,
-		Switch:  switchBranch{store, users}.Apply,
+		Protect: Protector(store, users),
+		Switch:  Switcher(store, users),
 	}
 }
 
@@ -33,33 +33,27 @@ func isSignedIn(toCheck string, users []string) bool {
 	return false
 }
 
-type switchBranch struct {
-	store Store
-	users []string
-}
+func Switcher(store Store, users []string) Switch {
+	return func(good, bad http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !isSignedIn(store.Get(r), users) {
+				bad.ServeHTTP(w, r)
+				return
+			}
 
-func (b switchBranch) Apply(good, bad http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !isSignedIn(b.store.Get(r), b.users) {
-			bad.ServeHTTP(w, r)
-			return
-		}
-
-		good.ServeHTTP(w, r)
-	})
-}
-
-type protectFilter struct {
-	store Store
-	users []string
+			good.ServeHTTP(w, r)
+		})
+	}
 }
 
 var forbidden = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "403 forbidden", http.StatusForbidden)
 })
 
-func (f protectFilter) Apply(handler http.Handler) http.Handler {
-	return switchBranch{f.store, f.users}.Apply(handler, forbidden)
+func Protector(store Store, users []string) Protect {
+	return func(handler http.Handler) http.Handler {
+		return Switcher(store, users)(handler, forbidden)
+	}
 }
 
 type signInHandler struct {

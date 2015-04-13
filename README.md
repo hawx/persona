@@ -1,4 +1,4 @@
-# persona
+# persona [![docs](http://godoc.org/github.com/hawx/persona?status.svg)](http://godoc.org/github.com/hawx/persona)
 
 Package for using [persona][] in webapps.
 
